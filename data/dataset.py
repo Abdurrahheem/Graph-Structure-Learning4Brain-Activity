@@ -40,9 +40,13 @@ def calculate_graph(vals, label, threshold):
                 y=torch.tensor([label]))
 
 
-def get_data(config):
+def generate_graph_dataset(config):
 
     vals, labels = generate_syntetic_data(config.N_samples, config.N_rois, config.classes)
-    dataset      = calculate_graph(vals, labels, config.threshold)
+    ## Generate our Synthetic dataset
+    data_list = []
+    for i in range(config.N_samples):
+        data = calculate_graph(vals[i,:,:], labels[i],  config.adj_mat_threshold)
+        data_list.append(data)
 
-    return dataset
+    return data_list

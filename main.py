@@ -12,6 +12,10 @@ from loguru import logger
 
 def main(cfg):
 
+    ## run logistinc regression for comparison
+    logger.info("Running logistic regression...")
+    run_logistic_regression(cfg)
+
     ## create data
     logger.info("Generating data...")
     dataset_list = generate_graph_dataset(cfg)
@@ -23,11 +27,8 @@ def main(cfg):
         output_size = cfg.classes,
         ).to(cfg.device)
 
-    ## run logistinc regression for comparison
-    run_logistic_regression(dataset_list)
-
     ## necessary perefirals
-    optimizer = AdamW(model.parameters(), lr = cfg.lr)
+    optimizer = AdamW(model.parameters(), lr = cfg.lr,  weight_decay = cfg.weight_decay)
     criterion = CrossEntropyLoss()
 
     ## train model

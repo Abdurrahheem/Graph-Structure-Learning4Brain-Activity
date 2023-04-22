@@ -6,6 +6,9 @@ def train(model, train_loader, criterion, optimizer, device):
     model.train()
 
     for data in train_loader:  # Iterate in batches over the training dataset.
+
+        optimizer.zero_grad()  # Clear gradients.
+
         out, x_pool = model(
                 data.x.type(dtype=torch.float).to(device),
                 data.edge_index.to(device),
@@ -13,6 +16,9 @@ def train(model, train_loader, criterion, optimizer, device):
                 )  # Perform a single forward pass.
 
         loss = criterion(out, data.y.to(device))  # Compute the loss.
+
+        loss.backward()  # Derive gradients.
+        optimizer.step()  # Update parameters based on gradients.
 
         # Compute L1 loss component
      #     l1_weight = 1
@@ -24,9 +30,6 @@ def train(model, train_loader, criterion, optimizer, device):
       # Add L1 loss component
      #     loss += l1
 
-        loss.backward()  # Derive gradients.
-        optimizer.step()  # Update parameters based on gradients.
-        optimizer.zero_grad()  # Clear gradients.
 
 def test(model, loader, device):
 
@@ -56,14 +59,12 @@ def train_model(X_train, X_val, model, optimizer, criterion, cfg):
     val_loader   = DataLoader(X_val,   batch_size=cfg.batch_size)
 
     for epoch in range(1, cfg.epoch):
-        logger.info(f'Epoch: {epoch}')
 
         train(model, train_loader, criterion, optimizer, device=cfg.device)
 
         train_acc, outs, labels  = test(model, train_loader, device=cfg.device)
         val_acc, outs, labels    = test(model, val_loader, device=cfg.device)
 
-        logger.info(f'Train Accuracy: {train_acc:.4f}')
-        logger.info(f'Val Accuracy: {val_acc:.4f}')
+        logger.info(f"Epoch {epoch} \ttrain acc: {train_acc:.4f}\tval acc: {val_acc:.4f}\n")
 
     return train_acc, val_acc, outs, labels

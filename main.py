@@ -1,5 +1,6 @@
 
 from model.model import GCN
+from model.logistic_regression import run_logistic_regression
 from config import Config
 from torch.optim import AdamW
 from torch.nn import CrossEntropyLoss
@@ -9,10 +10,10 @@ from sklearn.model_selection import KFold
 from loguru import logger
 
 
-
 def main(cfg):
 
     ## create data
+    logger.info("Generating data...")
     dataset_list = generate_graph_dataset(cfg)
 
     ##create model
@@ -22,7 +23,8 @@ def main(cfg):
         output_size = cfg.classes,
         ).to(cfg.device)
 
-    print("Number of trainable parameters: ", model.params())
+    ## run logistinc regression for comparison
+    run_logistic_regression(dataset_list)
 
     ## necessary perefirals
     optimizer = AdamW(model.parameters(), lr = cfg.lr)

@@ -6,13 +6,6 @@ from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_poo
 # from torch_geometric.nn import GCNConv, SAGEConv, GATv2Conv, GINConv
 
 class MODEL(torch.nn.Module):
-    def __init__(self):
-        super(MODEL, self).__init__()
-        pass
-
-    def forward(self, x):
-        pass
-
     def params(self):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])

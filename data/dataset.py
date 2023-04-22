@@ -1,9 +1,22 @@
+import time
 import torch
 import numpy as np
+from loguru import logger
 from torch_geometric.data import Data
 
-def generate_syntetic_data(N_samples, N_rois, classes):
+## write wrapper for measuring funtion execution time
+def measure_time(func):
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        logger.info(f"{func.__name__} took: {end-start:0.3f} s")
+        return result
+    return wrapper
 
+@measure_time
+def generate_syntetic_data(N_samples, N_rois, classes):
+    np.random.seed(12345)
     ## currently only works for 2 classes
     assert classes == 2, "Currently only works for 2 classes :(("
 
@@ -24,7 +37,6 @@ def generate_syntetic_data(N_samples, N_rois, classes):
 
     return vals, labels
 
-
 def calculate_graph(vals, label, threshold):
 
     X = vals
@@ -33,13 +45,14 @@ def calculate_graph(vals, label, threshold):
         for j in range(X.shape[1]):
             if X[i,j] > threshold:
                 edge_indexes.append([i,j])
-                edge_attres.append(X[i,j])
+            # edge_attres.append(X[i,j])
 
     return Data(x=torch.tensor(X),
                 edge_index=torch.tensor(np.array(edge_indexes).T),
                 y=torch.tensor([label]))
 
 
+@measure_time
 def generate_graph_dataset(config):
 
     vals, labels = generate_syntetic_data(config.N_samples, config.N_rois, config.classes)

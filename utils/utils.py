@@ -1,3 +1,4 @@
+import os
 import torch
 import datetime
 import pprint
@@ -16,6 +17,10 @@ def set_seed(cfg):
 
 
 def set_logger(cfg):
+
+    if not os.path.exists("logdir"):
+        os.mkdir("logdir")
+
     logger.add(f"logdir/{datetime.datetime.now().strftime('%Y-%m-%d@%H:%M:%S')}.log", backtrace=True, diagnose=True)
     logger.info(f"\n{fancy_dict(cfg)}")
 

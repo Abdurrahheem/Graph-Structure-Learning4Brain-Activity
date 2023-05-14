@@ -61,10 +61,7 @@ def generate_cobra_data(cfg):
     label_dict = {}
     for row in md.iterrows():
         label_dict[row[1]['Subjectid']] = row[1]['Dx']
-
     label_id = {j: i for i, j in enumerate(set([v for v in label_dict.values()]))}
-
-    print(label_id)
 
     adjacencies, labels = [], []
     for fn in file_names:
@@ -75,7 +72,6 @@ def generate_cobra_data(cfg):
         adjacencies.append(A[None])
         labels.append(label_id[label_dict[sub_id]])
     adjacencies = np.concatenate(adjacencies, axis=0)
-
     return adjacencies, labels
 
 def calculate_graph(vals, label, threshold):
@@ -86,6 +82,8 @@ def calculate_graph(vals, label, threshold):
         for j in range(X.shape[1]):
             if X[i,j] > threshold:
                 edge_indexes.append([i,j])
+
+            ## TODO: what kind of edge attributes should be used?
             # edge_attres.append(X[i,j])
 
     return Data(x=torch.tensor(X),

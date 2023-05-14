@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch_geometric.nn as tnn
-from config import Config
+from config.config import Config
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 # from torch_geometric.nn import GCNConv, SAGEConv, GATv2Conv, GINConv
 

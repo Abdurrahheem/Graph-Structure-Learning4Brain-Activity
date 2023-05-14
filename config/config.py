@@ -1,6 +1,4 @@
 class Config(object):
-    ## LogRegression for comparision
-    LogRegression           = False
 
     ## sythetic data params
     dataset                 = "synthetic"
@@ -9,11 +7,12 @@ class Config(object):
     classes                 = 2
 
     ## cobre dataset parameters
-    dataset                 = "cobre"
-    classes                 = 3
-    N_rois                  = 116
+    # dataset                 = "cobre"
+    # classes                 = 3
+    # N_rois                  = 116
 
-    ## Adjacency matrix parameters
+    ## Other dataset parameters
+    val_size                = 0.2
     adj_mat_threshold       = 0.2
 
     ## training params
@@ -23,8 +22,10 @@ class Config(object):
     lr                      = 0.0001
     weight_decay            = 0.0001
     device                  = "cuda:0"
-    val_size                = 0.2
 
     ## model params
     hidden_dim              = 30
     model_name              = "GCN"
+
+    ## LogRegression for comparision
+    LogRegression           = False

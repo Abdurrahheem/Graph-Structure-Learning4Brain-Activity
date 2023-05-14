@@ -17,16 +17,16 @@ def measure_time(func):
     return wrapper
 
 @measure_time
-def generate_syntetic_data(N_samples, N_rois, classes):
-    np.random.seed(12345)
+def generate_syntetic_data(cfg):
+    np.random.seed(cfg.seed)
     ## currently only works for 2 classes
-    assert classes == 2, "Currently only works for 2 classes :(("
+    assert cfg.classes == 2, "Currently only works for 2 classes :(("
 
-    vals = np.random.standard_normal((N_samples, N_rois, N_rois))
-    labels = np.random.randint(classes, size = N_samples)
+    vals = np.random.standard_normal((cfg.N_samples, cfg.N_rois, cfg.N_rois))
+    labels = np.random.randint(cfg.classes, size = cfg.N_samples)
 
     #TODO: make it working for more classes than 2
-    for i in range(N_samples):
+    for i in range(cfg.N_samples):
         if labels[i] == 0:
             vals[i,-1,-1] = 0.5 * np.random.random_sample()
         else:
@@ -99,9 +99,9 @@ def generate_graph_dataset(cfg):
         vals, labels = generate_cobra_data(cfg)
 
 
-    elif cfg.dataset.lower() == "syntetic":
+    elif cfg.dataset.lower() == "synthetic":
         logger.info("Generating Syntetic Dataset....")
-        vals, labels = generate_syntetic_data(cfg.N_samples, cfg.N_rois, cfg.classes)
+        vals, labels = generate_syntetic_data(cfg)
 
     else:
         raise ValueError(f"Dataset: {cfg.dataset} not supported")

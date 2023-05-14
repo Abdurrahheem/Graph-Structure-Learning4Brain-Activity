@@ -1,5 +1,5 @@
 from loguru import logger
-from config import Config
+from config.config import Config
 from model.model import GCN
 from torch.optim import AdamW
 from torch.nn import CrossEntropyLoss

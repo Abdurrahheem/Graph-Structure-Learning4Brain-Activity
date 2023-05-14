@@ -13,8 +13,9 @@ from loguru import logger
 def main(cfg):
 
     ## run logistinc regression for comparison
-    logger.info("Running logistic regression...")
-    run_logistic_regression(cfg)
+    if cfg.LogRegression:
+        logger.info("Running logistic regression...")
+        run_logistic_regression(cfg)
 
     ## create data
     logger.info("Generating data...")

@@ -6,8 +6,8 @@ from config.train import TrainConfig
 class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig):
 
     ## data config
-    # dataset                 = "cobre" #synthetic
-    dataset                 = "synthetic"
+    dataset                 = "cobre"
+    # dataset                 = "synthetic"
 
     ## Other dataset parameters
     val_size                = 0.2

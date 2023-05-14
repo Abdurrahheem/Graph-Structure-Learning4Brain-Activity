@@ -5,6 +5,7 @@ import torch_geometric.nn as tnn
 from torch_geometric.nn import global_mean_pool, global_add_pool, global_max_pool
 # from torch_geometric.nn import GCNConv, SAGEConv, GATv2Conv, GINConv
 
+torch.manual_seed(12345)
 class MODEL(torch.nn.Module):
     def params(self):
         model_parameters = filter(lambda p: p.requires_grad, self.parameters())
@@ -14,7 +15,6 @@ class MODEL(torch.nn.Module):
 class GCN(MODEL):
     def __init__(self, hidden_channels, N_rois, output_size):
         super(GCN, self).__init__()
-        torch.manual_seed(12345)
 
         self.conv1 = tnn.GCNConv(N_rois, hidden_channels)
         self.lin = nn.Linear(hidden_channels, output_size)

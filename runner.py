@@ -8,9 +8,10 @@ from model.train_utils import train_model
 from data.dataset import generate_graph_dataset
 from sklearn.model_selection import KFold
 from loguru import logger
+from argparse  import ArgumentParser
 
 
-def main(cfg):
+def run(cfg):
 
     ## run logistinc regression for comparison
     logger.info("Running logistic regression...")
@@ -40,14 +41,23 @@ def main(cfg):
         criterion=criterion,
         cfg=cfg
     )
-    print("Accuracy train: ", train_acc, " val:", val_acc)
-
+    logger.info(f"Accuracy train: {train_acc} val: {val_acc}")
 
 
 
 if __name__  == '__main__':
 
-    logger.info("Experiment Configuration: \n{}".format(vars(Config)))
+    parser = ArgumentParser()
+    parser.add_argument('-th', '--adj_mat_threshold', type=float, default=0.5)
+    args = parser.parse_args()
+    logger.remove(0)
 
-    ## TODO: test config atributes for attributes and values
-    main(Config)
+    for th in range(0, 10):
+        th = th / 10
+        Config.adj_mat_threshold = th
+
+        logger.add(f"logdir/log_{Config.adj_mat_threshold}.log", level="INFO")
+        logger.info("Experiment Configuration: \n{}".format(vars(Config)))
+
+        ## TODO: add a test config atributes for attributes and values
+        run(Config)

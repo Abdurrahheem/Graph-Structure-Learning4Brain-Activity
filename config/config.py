@@ -3,11 +3,11 @@ from config.synth import SynthConfig
 from config.model import ModelConfig
 from config.train import TrainConfig
 
-
 class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig):
 
     ## data config
-    dataset                 = "cobre" #synthetic
+    # dataset                 = "cobre" #synthetic
+    dataset                 = "synthetic"
 
     ## Other dataset parameters
     val_size                = 0.2
@@ -27,20 +27,13 @@ class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig):
         assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
                                                             Please choose from {['cobre', 'synthetic']}"
         if self.dataset == "cobre":
-            print("initializing Cobre")
+            print("initializing cobre")
             CobreConfig.__init__(self)
 
         elif self.dataset == "synthetic":
+            print("initializing synthetic")
             SynthConfig.__init__(self)
 
         TrainConfig.__init__(self)
         ModelConfig.__init__(self)
-
-    # def get_config(self):
-    #     config_dict = {}
-    #     all_attributes = dir(self.__class__)
-    #     for attribute in all_attributes:
-    #         value = getattr(self, attribute)
-    #         config_dict[attribute] = value
-    #     return config_dict
 

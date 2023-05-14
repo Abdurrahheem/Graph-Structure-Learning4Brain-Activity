@@ -1,6 +1,6 @@
 import torch
-from torch_geometric.loader import DataLoader
 from loguru import logger
+from torch_geometric.loader import DataLoader
 
 
 def train(model, train_loader, criterion, optimizer, device):
@@ -50,21 +50,10 @@ def test(model, loader, device):
 
         # print(out.shape)
         pred = out.argmax(dim=1)  # Use the class with highest probability.
-        # print("prediction", pred)
-        # print("ground truth", data.y.to(device))
 
         correct += int(
             (pred == data.y.to(device)).sum()
         )  # Check against ground-truth labels.
-
-        # print(data.y.shape[0])
-        # all += data.y.shape[0]
-        # print("all", all)
-
-    # print(len(loader.dataset))
-    # print("labels", len(labels))
-    # print("all", all)
-    # print("dataset len", len(loader.dataset))
 
     return (
         correct / len(loader.dataset),
@@ -77,9 +66,6 @@ def train_model(X_train, X_val, model, optimizer, criterion, cfg):
 
     train_loader = DataLoader(X_train, batch_size=cfg.batch_size)
     val_loader   = DataLoader(X_val, batch_size=cfg.batch_size)
-
-    print("train len: ", len(train_loader.dataset))
-    print("val len:", len(val_loader.dataset))
 
     for epoch in range(1, cfg.epoch):
         train(model, train_loader, criterion, optimizer, device=cfg.device)

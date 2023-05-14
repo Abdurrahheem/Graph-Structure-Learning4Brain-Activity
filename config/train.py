@@ -1,11 +1,7 @@
 class TrainConfig:
-    batch_size              = 30
-    epoch                   = 100
-    lr                      = 0.0001
-    weight_decay            = 0.0001
-    device                  = "cuda:0"
-
     def __init__ (self):
-        class_vars = vars(self.__class__)  # Get dictionary of class variables
-        for var_name, var_value in class_vars.items():
-            setattr(self, var_name, var_value)  # Create attribute with same name and value
+        self.batch_size              = 40
+        self.epoch                   = 200
+        self.lr                      = 0.0009
+        self.weight_decay            = 0.0001
+        self.device                  = "cuda:0"

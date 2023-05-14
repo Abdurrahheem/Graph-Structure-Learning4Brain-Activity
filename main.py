@@ -1,53 +1,45 @@
 from loguru import logger
 from config.config import Config
-from model.model import GCN
-from torch.optim import AdamW
-from torch.nn import CrossEntropyLoss
-from model.train_utils import train_model
-from data.dataset import generate_graph_dataset
-from sklearn.model_selection import KFold, train_test_split
-from model.logistic_regression import run_logistic_regression
+from train.gnn import run_gnn
+from train.logistic_regression import run_logistic_regression
+from tabulate import tabulate
+import pprint
 
+def get_config_dict(cfg):
+
+    config_dict = {}
+
+    all_attributes = dir(cfg.__class__)
+    for attribute in all_attributes:
+        if attribute.startswith("__"):
+            continue
+        value = getattr(cfg, attribute)
+        config_dict[attribute] = value
+
+    return  config_dict
+
+def fancy_dict(cfg):
+    table_header = ["keys", "values"]
+    exp_table = [
+        (str(k), pprint.pformat(v))
+        # for k, v in get_config_dict(cfg).items()
+        for k, v in vars(cfg).items()
+        if not k.startswith("_")
+    ]
+    return tabulate(exp_table, headers=table_header, tablefmt="fancy_grid")
 
 def main(cfg):
-    ## run logistinc regression for comparison
+    ##  logistinc regression for comparison
     if cfg.LogRegression:
-        logger.info("Running logistic regression...")
+        logger.info("Training Logistic Regression...")
         run_logistic_regression(cfg)
 
-    ## create data
-    logger.info("Generating data...")
-    dataset_list = generate_graph_dataset(cfg)
-
-    ##create model
-    model = GCN(
-        hidden_channels=cfg.hidden_dim,
-        N_rois=cfg.N_rois,
-        output_size=cfg.classes,
-    ).to(cfg.device)
-
-    ## necessary perefirals
-    optimizer = AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
-    criterion = CrossEntropyLoss()
-
-    ## split dataset to train and val splits
-    train_set, val_set = train_test_split(dataset_list, test_size=cfg.val_size, random_state=cfg.seed)
-
-    ## train model
-    train_acc, val_acc, outs, labels = train_model(
-        X_train=train_set,
-        X_val=val_set,
-        model=model,
-        optimizer=optimizer,
-        criterion=criterion,
-        cfg=cfg,
-    )
+    logger.info("Training GNN...")
+    run_gnn(cfg)
 
 if __name__ == "__main__":
-    cfgg = Config()
-    # cfgg.get_config()
+    cfg = Config()
 
-    # logger.info("Experiment Configuration: \n{}".format(cfg.get_config()))
+    logger.info(f"\n{fancy_dict(cfg)}")
 
-    ## TODO: test config atributes for attributes and values
-    main(cfgg)
+    main(cfg)

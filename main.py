@@ -44,7 +44,10 @@ def main(cfg):
     )
 
 if __name__ == "__main__":
-    logger.info("Experiment Configuration: \n{}".format(vars(Config)))
+    cfgg = Config()
+    # cfgg.get_config()
+
+    # logger.info("Experiment Configuration: \n{}".format(cfg.get_config()))
 
     ## TODO: test config atributes for attributes and values
-    main(Config)
+    main(cfgg)

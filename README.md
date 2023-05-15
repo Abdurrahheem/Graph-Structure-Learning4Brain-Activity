@@ -27,19 +27,20 @@
   </ol>
 </details>
 
-
+------
 
 ## About the Project
 
 
-### **Decoding Health**: Predictive Modeling of Diseases through Brain Activity Data and Graph Structure Learning
+#### **Decoding Health**: Predictive Modeling of Diseases through Brain Activity Data and Graph Structure Learning
 
-------
+
 
 Graph Neural Networks (GNNs) have emerged as the de-facto solution for predicting on graph structured data. However, the assumption that the graph structure (i.e., the adjacency matrix) is given and true is often not valid in practice, as graph structures are often created by humans and may contain noise. This can potentially degrade the performance of GNNs. Moreover, there are real-world scenarios, such as physical particles interacting or fMRI data readings from the brain, where the underlying graph structure is latent and not predefined. In this work, we explore the prediction of graph structures from brain signals using GNNs, aiming to address the challenge of predicting graph structures from noisy or intermingled signals.
 
-
+------
 ## Getting Started
+Following instructions will guide you in runing this repository on your own machine.
 To download dataset copy and paste the following to your terminal.
 ### Download Dataset
 ```console

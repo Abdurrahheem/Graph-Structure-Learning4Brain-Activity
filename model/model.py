@@ -21,12 +21,13 @@ class GCN(MODEL):
 
         self.conv1 = tnn.GCNConv(N_rois, hidden_channels)
         self.lin = nn.Linear(hidden_channels, output_size)
+        self.act = nn.LeakyReLU()
 
     def forward(self, x, edge_index, batch):
 
         # 1. Obtain node embeddings
         x = self.conv1(x, edge_index=edge_index)
-        x = x.relu()
+        x = self.act(x)
 
         # 2. Readout layer
         x_pool = global_max_pool(x, batch)  # [batch_size, hidden_channels]

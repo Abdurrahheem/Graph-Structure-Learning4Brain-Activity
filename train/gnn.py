@@ -1,3 +1,4 @@
+import torch
 from loguru import logger
 from model.model import GCN
 from torch.optim import AdamW
@@ -24,8 +25,10 @@ def run_gnn(cfg):
     optimizer = AdamW(
         model.parameters(),
         lr=cfg.lr,
-        weight_decay=cfg.weight_decay
+        weight_decay=cfg.weight_decay if cfg.weight_decay is not None else 0,
     )
+
+    scheduler = None
 
     ## split dataset to train and val splits
     train_set, val_set = train_test_split(
@@ -36,10 +39,11 @@ def run_gnn(cfg):
 
     ## train model
     train_acc, val_acc, outs, labels = train_model(
+        cfg=cfg,
         X_train=train_set,
         X_val=val_set,
         model=model,
         optimizer=optimizer,
         criterion=criterion,
-        cfg=cfg,
+        scheduler=scheduler,
     )

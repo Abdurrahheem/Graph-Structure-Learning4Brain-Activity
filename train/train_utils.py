@@ -1,6 +1,7 @@
 import torch
 from loguru import logger
 from torch_geometric.loader import DataLoader
+from sklearn.metrics import f1_score, accuracy_score
 
 
 def train(model, train_loader, criterion, optimizer, device):
@@ -36,6 +37,7 @@ def test(model, loader, device):
 
     correct, all = 0, 0
     outs, labels = [], []
+    pd, gt = [], []
     for data in loader:  # Iterate in batches over the training/test dataset.
 
         out, x_pool = model(
@@ -51,30 +53,46 @@ def test(model, loader, device):
         # print(out.shape)
         pred = out.argmax(dim=1)  # Use the class with highest probability.
 
-        correct += int(
-            (pred == data.y.to(device)).sum()
-        )  # Check against ground-truth labels.
+        pd.extend(pred.detach().cpu().numpy().tolist())
+        gt.extend(data.y.to(device).detach().cpu().numpy().tolist())
 
+
+    f1 = f1_score(pd, gt, average='weighted')
+    accuracy = accuracy_score(pd, gt)
     return (
-        correct / len(loader.dataset),
+        accuracy,
+        f1,
         outs,
         labels,
     )  # Derive ratio of correct predictions.
 
 
-def train_model(X_train, X_val, model, optimizer, criterion, cfg):
+def train_model(cfg, X_train, X_val, model, optimizer, criterion, scheduler):
 
     train_loader = DataLoader(X_train, batch_size=cfg.batch_size)
     val_loader   = DataLoader(X_val, batch_size=cfg.batch_size)
 
+    best_val_f1, best_val_acc, best_tr_f1, best_tr_acc  = 0, 0, 0, 0
+    best_epoch = None
     for epoch in range(1, cfg.epoch):
         train(model, train_loader, criterion, optimizer, device=cfg.device)
 
-        train_acc, outs, labels = test(model, train_loader, device=cfg.device)
-        val_acc, outs, labels = test(model, val_loader, device=cfg.device)
+        train_acc, tr_f1, outs, labels = test(model, train_loader, device=cfg.device)
+        val_acc, vl_f1, outs, labels   = test(model, val_loader, device=cfg.device)
 
         logger.info(
-            f"Epoch {epoch} \ttrain acc: {train_acc:.4f}\tval acc: {val_acc:.4f}\n"
+            f"Epoch {epoch} \ttrain acc: {train_acc:.4f}\tval acc: {val_acc:.4f}\n\t\t\t\t\t\t\t\t\t\t\ttrain f1:  {tr_f1:.4f}\tval f1:  {vl_f1:.4f}"
         )
+
+        if vl_f1 > best_val_f1:
+            best_val_f1 = vl_f1
+            best_val_acc = val_acc
+            best_tr_f1 = tr_f1
+            best_tr_acc = train_acc
+            best_epoch = epoch
+
+    logger.info(
+        f"Best Metrics -> Epoch {best_epoch} \ttrain acc: {best_tr_acc:.4f}\tval acc: {best_val_acc:.4f}\n\t\t\t\t\t\t\t\t\t\t\t\ttrain f1:  {best_tr_f1:.4f}\tval f1:  {best_val_f1:.4f}"
+    )
 
     return train_acc, val_acc, outs, labels

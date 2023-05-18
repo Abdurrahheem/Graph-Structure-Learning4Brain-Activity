@@ -1,3 +1,4 @@
+import pickle, os
 from data.dataset import generate_syntetic_data, generate_cobra_data
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
@@ -8,7 +9,7 @@ def run_logistic_regression(cfg):
 
     if cfg.dataset == 'synthetic':
         logger.info("Generating synthetic data for Logistic regression")
-        data, labels = generate_syntetic_data(cfg.N_samples, cfg.N_rois,  cfg.classes)
+        data, labels = generate_syntetic_data(cfg)
     elif cfg.dataset == "cobre":
         logger.info("Genereting Cobre data set for Logistic regression")
         data, labels = generate_cobra_data(cfg)
@@ -19,11 +20,17 @@ def run_logistic_regression(cfg):
         lr,
         data.reshape(data.shape[0], -1),
         labels,
-        cv=5,
+        cv=cfg.n_splits,
         scoring='f1_weighted',
         n_jobs=-1
         )
 
     logger.info(f"Logistic Regression scross val score : {scores.mean()}")
-    exit(0);
+
+    ## if result folder does not exist, create it
+    if not os.path.exists("./results/LR/"):
+        os.makedirs("./results/LR/")
+
+    with open("results/LR/log_reg_results.pkl", "wb") as f:
+        pickle.dump(scores, f)
 

@@ -22,14 +22,15 @@ def train(model, train_loader, criterion, optimizer, device):
         optimizer.step()  # Update parameters based on gradients.
 
         # Compute L1 loss component
-    #     l1_weight = 1
-    #     l1_parameters = []
-    #     for parameter in model.parameters():
-    #          l1_parameters.append(parameter.view(-1))
-    #     l1 = l1_weight * model.compute_l1_loss(torch.cat(l1_parameters))
+        l1_weight = 1
+        l1_parameters = []
+        for parameter in model.parameters():
+            l1_parameters.append(parameter.view(-1))
 
-    # Add L1 loss component
-    #     loss += l1
+        l1 = l1_weight * model.compute_l1_loss(torch.cat(l1_parameters))
+
+        # Add L1 loss component
+        loss += l1
 
 
 def test(model, loader, device):
@@ -67,7 +68,7 @@ def test(model, loader, device):
     )  # Derive ratio of correct predictions.
 
 
-def train_model(cfg, X_train, X_val, model, optimizer, criterion, scheduler):
+def train_model(cfg, X_train, X_val, model, optimizer, criterion, scheduler, verbose=False):
 
     train_loader = DataLoader(X_train, batch_size=cfg.batch_size)
     val_loader   = DataLoader(X_val, batch_size=cfg.batch_size)
@@ -80,19 +81,26 @@ def train_model(cfg, X_train, X_val, model, optimizer, criterion, scheduler):
         train_acc, tr_f1, outs, labels = test(model, train_loader, device=cfg.device)
         val_acc, vl_f1, outs, labels   = test(model, val_loader, device=cfg.device)
 
-        logger.info(
-            f"Epoch {epoch} \ttrain acc: {train_acc:.4f}\tval acc: {val_acc:.4f}\n\t\t\t\t\t\t\t\t\t\t\ttrain f1:  {tr_f1:.4f}\tval f1:  {vl_f1:.4f}"
-        )
+        if verbose:
+            logger.info(
+                f"Epoch {epoch} \ttrain acc: {train_acc:.4f}\tval acc: {val_acc:.4f}\n\t\t\t\t\t\t\t\t\t\t\ttrain f1:  {tr_f1:.4f}\tval f1:  {vl_f1:.4f}"
+            )
 
         if vl_f1 > best_val_f1:
-            best_val_f1 = vl_f1
-            best_val_acc = val_acc
+
             best_tr_f1 = tr_f1
+            best_val_f1 = vl_f1
+
             best_tr_acc = train_acc
+            best_val_acc = val_acc
+
             best_epoch = epoch
 
     logger.info(
-        f"Best Metrics -> Epoch {best_epoch} \ttrain acc: {best_tr_acc:.4f}\tval acc: {best_val_acc:.4f}\n\t\t\t\t\t\t\t\t\t\t\t\ttrain f1:  {best_tr_f1:.4f}\tval f1:  {best_val_f1:.4f}"
+        f"Best Metrics -> Epoch {best_epoch} \ttrain acc: {best_tr_acc:.4f}\tval acc: {best_val_acc:.4f}\n\t\t\t\t\t\t\t\t\t\t\t\t\ttrain f1:  {best_tr_f1:.4f}\tval f1:  {best_val_f1:.4f}"
+    )
+    logger.info(
+        f"Model parameters -> {model.params()}"
     )
 
-    return train_acc, val_acc, outs, labels
+    return best_tr_acc, best_val_acc, best_tr_f1, best_val_f1, outs, labels

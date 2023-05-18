@@ -11,11 +11,11 @@ class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig):
 
     ## Other dataset parameters
     val_size                = 0.2
-    adj_mat_threshold       = 0.2
+    adj_mat_threshold       = 0.5
     seed                    = 1234
-
+    n_splits                = 7
     ## LogRegression for comparision
-    LogRegression           = False
+    LogRegression           = True
 
 
     def __init__(self):

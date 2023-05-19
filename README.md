@@ -120,3 +120,9 @@ To start training of a model with default haparameters run this:
 ```console
 python main.py
 ```
+
+To create training result diagrams run this
+
+```console
+python utils/draw.py
+```

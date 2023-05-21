@@ -47,9 +47,12 @@ def generate_cobra_data(cfg):
     assert data_path.is_dir(), "THERE IS NO COBRE DATA SET"
 
     file_names = []
+    file_names_embed = []
     for fn in data_path.iterdir():
         if "embed" not in str(fn):
             file_names.append(str(fn))
+        else:
+            file_names_embed.append(str(fn))
 
     assert (data_path.parent.parent.parent / "meta_data.tsv").is_file(), "THERE IS NO META DATA FILE"
 
@@ -61,23 +64,43 @@ def generate_cobra_data(cfg):
     label_dict = {}
     for row in md.iterrows():
         label_dict[row[1]['Subjectid']] = row[1]['Dx']
-    label_id = {j: i for i, j in enumerate(set([v for v in label_dict.values()]))}
 
-    adjacencies, labels = [], []
-    for fn in file_names:
+    ## filter out "Schizoaffective" class are only small amout of values there
+    label_dict = {k: v for k, v in label_dict.items() if v != "Schizoaffective"}
+    label_id = {j: i for i, j in enumerate(sorted(set([v for v in label_dict.values()])))}
+
+    adjacencies, node_embeddings, labels = [], [], []
+    for fn, fn_emb in zip(file_names, file_names_embed):
         df = pd.read_csv(fn)
+        df_emb = pd.read_csv(fn_emb, index_col=False)
+
         sub_id = fn.split("/")[-1].split("-")[1].split(".")[0]
+
+        if sub_id not in label_dict:
+            continue
+
+        df_emb = df_emb.loc[:, ~df_emb.columns.str.contains('^Unnamed')]
+        A_emb = df_emb.to_numpy().T
+
         A = df[df.columns[1:]].to_numpy()
         A = np.squeeze(A)
+
+        node_embeddings.append(A_emb[None])
         adjacencies.append(A[None])
         labels.append(label_id[label_dict[sub_id]])
-    adjacencies = np.concatenate(adjacencies, axis=0)
-    return adjacencies, labels
 
-def calculate_graph(vals, label, threshold):
+    adjacencies = np.concatenate(adjacencies, axis=0)
+    node_embeddings = np.concatenate(node_embeddings, axis=0)
+    return adjacencies, labels, node_embeddings
+
+def calculate_graph(vals, label, threshold, node_embeddings=None):
+
+    if node_embeddings is not None:
+        assert vals.shape[0] == node_embeddings.shape[0]
+        assert node_embeddings.shape[1] > 0
 
     X = vals
-    edge_indexes, edge_attres = [], []
+    edge_indexes, edge_attres, = [], []
     for i in range(X.shape[0]):
         for j in range(X.shape[1]):
             if X[i,j] > threshold:
@@ -85,10 +108,20 @@ def calculate_graph(vals, label, threshold):
 
             ## TODO: what kind of edge attributes should be used?
             # edge_attres.append(X[i,j])
+    # print(node_embeddings.shape, np.array(edge_indexes).T.shape)
 
-    return Data(x=torch.tensor(X),
-                edge_index=torch.tensor(np.array(edge_indexes).T),
-                y=torch.tensor([label]))
+    if node_embeddings is not None:
+        return Data(
+            x=torch.tensor(node_embeddings),
+            edge_index=torch.tensor(np.array(edge_indexes).T),
+            y=torch.tensor([label])
+            )
+    else:
+        return Data(
+            x=torch.tensor(X),
+            edge_index=torch.tensor(np.array(edge_indexes).T),
+            y=torch.tensor([label])
+            )
 
 
 @measure_time
@@ -96,7 +129,7 @@ def generate_graph_dataset(cfg):
 
     if cfg.dataset.lower() == "cobre":
         logger.info("Generating Cobre Dataset....")
-        vals, labels = generate_cobra_data(cfg)
+        vals, labels, node_embeddings = generate_cobra_data(cfg)
 
 
     elif cfg.dataset.lower() == "synthetic":
@@ -109,7 +142,10 @@ def generate_graph_dataset(cfg):
     logger.info("Thresholding Adjacency Matrices....")
     data_list = []
     for i in range(vals.shape[0]):
-        data = calculate_graph(vals[i,:,:], labels[i],  cfg.adj_mat_threshold)
+        if cfg.dataset.lower() == "cobre" and cfg.use_node_embeddings:
+            data = calculate_graph(vals[i,:,:], labels[i],  cfg.adj_mat_threshold, node_embeddings[i, :, :])
+        else:
+            data = calculate_graph(vals[i,:,:], labels[i],  cfg.adj_mat_threshold)
         data_list.append(data)
 
     return data_list

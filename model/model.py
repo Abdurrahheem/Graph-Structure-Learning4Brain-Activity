@@ -16,14 +16,18 @@ class MODEL(torch.nn.Module):
         return params
 
 class GCN(MODEL):
-    def __init__(self, hidden_channels, N_rois, output_size):
+    def __init__(self, cfg):
         super(GCN, self).__init__()
 
-        self.conv1 = tnn.GCNConv(N_rois, hidden_channels)
-        self.lin = nn.Linear(hidden_channels, output_size)
+        if cfg.use_node_embeddings:
+            self.conv1 = tnn.GCNConv(cfg.feature_size, cfg.hidden_channels)
+        else:
+            self.conv1 = tnn.GCNConv(cfg.N_rois, cfg.hidden_channels)
+
+        self.lin = nn.Linear(cfg.hidden_channels, cfg.classes)
         self.act = nn.LeakyReLU()
-        self.dropout = nn.Dropout(0.5)
-        self.bn = nn.BatchNorm1d(hidden_channels)
+        self.dropout = nn.Dropout(cfg.dropout)
+        self.bn = nn.BatchNorm1d(cfg.hidden_channels)
         # self.act = nn.Tanh()
 
     def forward(self, x, edge_index, batch):

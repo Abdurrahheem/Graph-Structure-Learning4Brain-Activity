@@ -2,21 +2,14 @@ from config.cobre import CobreConfig
 from config.synth import SynthConfig
 from config.model import ModelConfig
 from config.train import TrainConfig
+from config.dataset import DatasetConfig
 
-class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig):
-
-    ## data config
-    dataset                 = "cobre"
-    # dataset                 = "synthetic"
-
+class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig, DatasetConfig):
     ## Other dataset parameters
-    val_size                = 0.2
-    adj_mat_threshold       = 0.5
     seed                    = 1234
-    n_splits                = 7
+
     ## LogRegression for comparision
     LogRegression           = True
-
 
     def __init__(self):
 
@@ -24,8 +17,11 @@ class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig):
         for var_name, var_value in class_vars.items():
             setattr(self, var_name, var_value)  # Create attribute with same name and value
 
-        assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
-                                                            Please choose from {['cobre', 'synthetic']}"
+        TrainConfig.__init__(self)
+        ModelConfig.__init__(self)
+        DatasetConfig.__init__(self)
+
+
         if self.dataset == "cobre":
             print("initializing cobre")
             CobreConfig.__init__(self)
@@ -34,6 +30,6 @@ class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig):
             print("initializing synthetic")
             SynthConfig.__init__(self)
 
-        TrainConfig.__init__(self)
-        ModelConfig.__init__(self)
 
+        assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
+                                                            Please choose from {['cobre', 'synthetic']}"

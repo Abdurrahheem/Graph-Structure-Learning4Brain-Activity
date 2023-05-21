@@ -1,6 +1,6 @@
 class TrainConfig:
     def __init__ (self):
-        self.batch_size              = 20
+        self.batch_size              = 30
         self.epoch                   = 200
         # self.lr                      = 0.0009
         self.lr                      = 0.003

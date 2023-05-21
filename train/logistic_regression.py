@@ -12,9 +12,10 @@ def run_logistic_regression(cfg):
         data, labels = generate_syntetic_data(cfg)
     elif cfg.dataset == "cobre":
         logger.info("Genereting Cobre data set for Logistic regression")
-        data, labels = generate_cobra_data(cfg)
+        data, labels, node_embeddings = generate_cobra_data(cfg)
 
-    lr = LogisticRegression(penalty='l1', solver='liblinear')
+    # lr = LogisticRegression(penalty='l1', solver='liblinear')
+    lr = LogisticRegression(solver="liblinear", penalty="l2")
 
     scores = cross_val_score(
         lr,

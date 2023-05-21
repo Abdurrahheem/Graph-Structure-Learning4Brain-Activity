@@ -32,11 +32,7 @@ def run_gnn(cfg):
             val_set   = [dataset_list[i] for i in val_idx]
 
             ##create model
-            model = GCN(
-                hidden_channels=cfg.hidden_dim,
-                N_rois=cfg.N_rois,
-                output_size=cfg.classes,
-            ).to(cfg.device)
+            model = GCN(cfg).to(cfg.device)
 
             ## necessary perefirals
             criterion = CrossEntropyLoss()

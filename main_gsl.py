@@ -6,11 +6,13 @@ from gst_model import GCL
 from data.dataset import generate_graph_dataset
 from utils.utils import set_seed, set_logger
 from torch_geometric.loader import DataLoader
-from torch_geometric.utils import to_dense_adj
-from gstl_utils import normalize, symmetrize
+from torch_geometric.utils import to_dense_adj, dense_to_sparse
+from gstl_utils import normalize, symmetrize, adj_to_index
 from model.model import GCN
 from torch.optim import AdamW
 from torch.nn import CrossEntropyLoss
+from train.train_utils import test
+from sklearn.metrics import f1_score, accuracy_score
 
 
 
@@ -57,13 +59,11 @@ def loss_gcl(model, graph_learner, features, anchor_adj):
 def eval(graph_learner, data_loader, cfg):
 
     graph_learner.eval()
+    graph_learner = graph_learner.to(cfg.device)
 
     ## define model
-    model
-    model.train()
-    ## define optimizer
-    ## define criterion
     model = GCN(cfg).to(cfg.device)
+    model.train()
 
     ## necessary perefirals
     criterion = CrossEntropyLoss()
@@ -76,24 +76,80 @@ def eval(graph_learner, data_loader, cfg):
     for data in data_loader:  # Iterate in batches over the training dataset.
 
         features = data.x.to(torch.float32)
-        # adjacency = data.edge_index
+        features = features.to(cfg.device)
+        adjacency = data.edge_index
         # adjacency = to_dense_adj(data.edge_index).squeeze_()
-        assert adjacency.shape[0] == features.shape[0]
+        # assert adjacency.shape[0] == features.shape[0]
 
-        learned_adj = graph_learner(features)
+        with torch.no_grad():
+            learned_adj = graph_learner(features)
+            edge_index, edge_weight = dense_to_sparse(learned_adj)
+            # edge_index, edge_weight = adj_to_index(learned_adj)
+        assert learned_adj.shape[0] == features.shape[0]
+
         optimizer.zero_grad()  # Clear gradients.
 
         out, x_pool = model(
-            data.x.type(dtype=torch.float).to(device),
-            learned_adj,
-            data.batch.to(device),
+            data.x.type(dtype=torch.float).to(cfg.device),
+            edge_index,
+            data.batch.to(cfg.device),
+            edge_weights=edge_weight
         )  # Perform a single forward pass.
 
-        loss = criterion(out, data.y.to(device))  # Compute the loss.
+        loss = criterion(out, data.y.to(cfg.device))  # Compute the loss.
 
         loss.backward()  # Derive gradients.
         optimizer.step()  # Update parameters based on gradients.
 
+    acc, f1, out, labels = test_gsl(model, graph_learner, data_loader,  cfg.device)
+    print(f"Accuracy: {acc}, f1: {f1}")
+
+
+def test_gsl(model, graph_learner, loader, device):
+
+    graph_learner.eval()
+    model.eval()
+    model = model.to(device)
+    graph_learner = graph_learner.to(device)
+
+    correct, all = 0, 0
+    outs, labels = [], []
+    pd, gt = [], []
+    for data in loader:  # Iterate in batches over the training/test dataset.
+
+        features = data.x.to(torch.float32)
+        features = features.to(cfg.device)
+
+        with torch.no_grad():
+            learned_adj = graph_learner(features)
+            edge_index, edge_weight = dense_to_sparse(learned_adj)
+            assert learned_adj.shape[0] == features.shape[0]
+
+            out, x_pool = model(
+                data.x.type(dtype=torch.float).to(cfg.device),
+                edge_index,
+                data.batch.to(cfg.device),
+                edge_weights=edge_weight
+            )  # Perform a single forward pass.
+
+        ##TODO: why x_pool is used as an output?
+        outs.append(x_pool.detach().cpu().numpy())
+        labels.append(data.y.to(device).detach().cpu().numpy())
+
+        # print(out.shape)
+        pred = out.argmax(dim=1)  # Use the class with highest probability.
+
+        pd.extend(pred.detach().cpu().numpy().tolist())
+        gt.extend(data.y.to(device).detach().cpu().numpy().tolist())
+
+    f1 = f1_score(pd, gt, average='weighted')
+    accuracy = accuracy_score(pd, gt)
+    return (
+        accuracy,
+        f1,
+        outs,
+        labels,
+    )  # Derive ratio of correct predictions.
 
 
 
@@ -110,7 +166,8 @@ if __name__ == "__main__":
     batch_size      = 20
     lr              = 0.01
     w_decay         = 0.0
-    eval_freq       = 0
+    eval_freq       = 1
+    device          = cfg.device
 
     dataset_list = generate_graph_dataset(cfg)
 
@@ -152,15 +209,17 @@ if __name__ == "__main__":
         model.train()
         graph_learner.train()
 
+        model = model.to(device)
+        graph_learner = graph_learner.to(device)
 
         epoch_loss, couter = 0, 0
         for data in train_loader:  # Iterate in batches over the training dataset.
 
-            features = data.x
-            adjacency = data.edge_index
+            features = data.x.to(device)
             features  = features.to(torch.float32)
+            adjacency = data.edge_index.to(device)
 
-            adjacency = to_dense_adj(data.edge_index).squeeze_()
+            adjacency = to_dense_adj(adjacency).squeeze_()
             assert adjacency.shape[0] == features.shape[0]
             anchor_adj = copy.deepcopy(adjacency)
 
@@ -182,4 +241,8 @@ if __name__ == "__main__":
 
         if epoch % eval_freq == 0:
 
-            eval()
+            eval(
+                graph_learner=graph_learner,
+                data_loader=train_loader,
+                cfg=cfg
+            )

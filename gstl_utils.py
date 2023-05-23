@@ -173,6 +173,19 @@ def knn_fast(X, k, b):
     return rows, cols, values
 
 
+def adj_to_index(adj):
+
+    assert len(adj.shape) == 2
+    assert adj.shape[0] == adj.shape[1]
+
+    edge_index, edge_weight = [], []
+    for i in range(adj.shape[0]):
+        for j in range(adj.shape[1]):
+            edge_index.append([i, j])
+            edge_weight.append(adj[i, j].item())
+
+    return torch.tensor(edge_index, device=adj.device).T, torch.tensor(edge_weight, device=adj.device)
+
 def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     """Convert a scipy sparse matrix to a torch sparse tensor."""
     sparse_mx = sparse_mx.tocoo().astype(np.float32)

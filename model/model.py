@@ -30,10 +30,10 @@ class GCN(MODEL):
         self.bn = nn.BatchNorm1d(cfg.hidden_channels)
         # self.act = nn.Tanh()
 
-    def forward(self, x, edge_index, batch):
+    def forward(self, x, edge_index, batch, edge_weights=None):
 
         # 1. Obtain node embeddings
-        x = self.conv1(x, edge_index=edge_index)
+        x = self.conv1(x, edge_index=edge_index, edge_weight=edge_weights)
         x = self.dropout(x)
         x = self.act(x)
         # x = self.bn(x)

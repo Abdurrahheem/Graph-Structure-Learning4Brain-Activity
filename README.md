@@ -45,8 +45,23 @@ Following instructions will guide you in run this repository on your own machine
 ### **Download Dataset**
 Firstly you nee to download dataset. Copy and paste the following to your terminal.
 
+1. Install `wget`
+
+On `linux`
+
+```
+apt-get install wget
+```
+
+On `macOS`
+```
+brew install wget
+```
+
+1. Download data and unpack dataset
+
 ```console
-cd utils && ./download_data && cd ..
+cd utils && ./download_data.sh && cd ..
 ```
 This will create `dataset` folder with following structure:
 

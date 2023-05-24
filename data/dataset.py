@@ -103,12 +103,13 @@ def calculate_graph(vals, label, threshold, node_embeddings=None):
     edge_indexes, edge_attres, = [], []
     for i in range(X.shape[0]):
         for j in range(X.shape[1]):
-            if X[i,j] > threshold:
-                edge_indexes.append([i,j])
+            if X[i, j] > threshold:
+                edge_indexes.append([i, j])
+            if i == j:
+                edge_indexes.append([i, j])
 
             ## TODO: what kind of edge attributes should be used?
             # edge_attres.append(X[i,j])
-    # print(node_embeddings.shape, np.array(edge_indexes).T.shape)
 
     if node_embeddings is not None:
         return Data(

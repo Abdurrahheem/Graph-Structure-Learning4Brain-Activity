@@ -34,7 +34,9 @@ def train(model, train_loader, criterion, optimizer, device):
 
 
 def test(model, loader, device):
+
     model.eval()
+    model = model.to(device)
 
     correct, all = 0, 0
     outs, labels = [], []

@@ -33,3 +33,21 @@ class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig, DatasetConfig):
 
         assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
                                                             Please choose from {['cobre', 'synthetic']}"
+
+class ConfigGSL(DatasetConfig):
+    seed                    = 1234
+
+    def __init__(self):
+
+        class_vars = vars(self.__class__)  # Get dictionary of class variables
+        for var_name, var_value in class_vars.items():
+            setattr(self, var_name, var_value)  # Create attribute with same name and value
+
+        if self.dataset == "cobre":
+            assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
+                                                            Please choose from {['cobre', 'synthetic']}"
+            CobreConfig.__init__(self)
+
+
+
+

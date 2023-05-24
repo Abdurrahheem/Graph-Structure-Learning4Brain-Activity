@@ -7,12 +7,13 @@ from data.dataset import generate_graph_dataset
 from utils.utils import set_seed, set_logger
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils import to_dense_adj, dense_to_sparse
-from gstl_utils import normalize, symmetrize, adj_to_index
+from gstl_utils import normalize, symmetrize
 from model.model import GCN
 from torch.optim import AdamW
 from torch.nn import CrossEntropyLoss
 from train.train_utils import test
 from sklearn.metrics import f1_score, accuracy_score
+from sklearn.model_selection import KFold, train_test_split
 
 
 
@@ -56,8 +57,19 @@ def loss_gcl(model, graph_learner, features, anchor_adj):
     return loss, learned_adj
 
 
-def eval(graph_learner, data_loader, cfg):
+def eval(graph_learner, dataset_list, cfg):
 
+    train_index, val_index = train_test_split(
+        dataset_list,
+        test_size=cfg.val_size,
+        shuffle=True,
+        random_state=cfg.seed
+    )
+
+    train_loader = DataLoader(train_index, batch_size=cfg.batch_size)
+    val_loader   = DataLoader(val_index, batch_size=cfg.batch_size)
+
+    epoches = 100
     graph_learner.eval()
     graph_learner = graph_learner.to(cfg.device)
 
@@ -72,47 +84,50 @@ def eval(graph_learner, data_loader, cfg):
         lr=cfg.lr,
         weight_decay=cfg.weight_decay if cfg.weight_decay is not None else 0,
     )
+    best_f1, best_acc = 0, 0
+    for epoch in range(epoches):
+        for data in train_loader:  # Iterate in batches over the training dataset.
 
-    for data in data_loader:  # Iterate in batches over the training dataset.
+            features = data.x.to(torch.float32)
+            features = features.to(cfg.device)
 
-        features = data.x.to(torch.float32)
-        features = features.to(cfg.device)
-        adjacency = data.edge_index
-        # adjacency = to_dense_adj(data.edge_index).squeeze_()
-        # assert adjacency.shape[0] == features.shape[0]
+            with torch.no_grad():
+                learned_adj = graph_learner(features)
+                edge_index, edge_weight = dense_to_sparse(learned_adj)
+            assert learned_adj.shape[0] == features.shape[0]
 
-        with torch.no_grad():
-            learned_adj = graph_learner(features)
-            edge_index, edge_weight = dense_to_sparse(learned_adj)
-            # edge_index, edge_weight = adj_to_index(learned_adj)
-        assert learned_adj.shape[0] == features.shape[0]
+            optimizer.zero_grad()  # Clear gradients.
 
-        optimizer.zero_grad()  # Clear gradients.
+            out, x_pool = model(
+                data.x.type(dtype=torch.float).to(cfg.device),
+                edge_index,
+                data.batch.to(cfg.device),
+                edge_weights=edge_weight
+            )  # Perform a single forward pass.
 
-        out, x_pool = model(
-            data.x.type(dtype=torch.float).to(cfg.device),
-            edge_index,
-            data.batch.to(cfg.device),
-            edge_weights=edge_weight
-        )  # Perform a single forward pass.
+            loss = criterion(out, data.y.to(cfg.device))  # Compute the loss.
 
-        loss = criterion(out, data.y.to(cfg.device))  # Compute the loss.
+            loss.backward()  # Derive gradients.
+            optimizer.step()  # Update parameters based on gradients.
 
-        loss.backward()  # Derive gradients.
-        optimizer.step()  # Update parameters based on gradients.
+        acc, f1, _, _ = test_gsl(model, graph_learner, val_loader,  cfg.device)
 
-    acc, f1, out, labels = test_gsl(model, graph_learner, data_loader,  cfg.device)
-    print(f"Accuracy: {acc}, f1: {f1}")
+        if f1 > best_f1:
+            best_f1 = max(best_f1, f1)
+            best_acc = max(best_acc, acc)
+
+    return best_acc, best_f1
+
 
 
 def test_gsl(model, graph_learner, loader, device):
 
     graph_learner.eval()
-    model.eval()
-    model = model.to(device)
     graph_learner = graph_learner.to(device)
 
-    correct, all = 0, 0
+    model.eval()
+    model = model.to(device)
+
     outs, labels = [], []
     pd, gt = [], []
     for data in loader:  # Iterate in batches over the training/test dataset.
@@ -136,7 +151,6 @@ def test_gsl(model, graph_learner, loader, device):
         outs.append(x_pool.detach().cpu().numpy())
         labels.append(data.y.to(device).detach().cpu().numpy())
 
-        # print(out.shape)
         pred = out.argmax(dim=1)  # Use the class with highest probability.
 
         pd.extend(pred.detach().cpu().numpy().tolist())
@@ -152,7 +166,6 @@ def test_gsl(model, graph_learner, loader, device):
     )  # Derive ratio of correct predictions.
 
 
-
 if __name__ == "__main__":
     cfg = Config()
 
@@ -160,20 +173,18 @@ if __name__ == "__main__":
     # set_logger(cfg)
 
 
-    epoches         = 10
+    epoches         = 200
     c               = 0
     tau             = 0.9999
     batch_size      = 20
     lr              = 0.01
     w_decay         = 0.0
-    eval_freq       = 1
+    eval_freq       = 5
     device          = cfg.device
 
     dataset_list = generate_graph_dataset(cfg)
+    train_loader = DataLoader(dataset_list, batch_size=batch_size, shuffle=True)
 
-    print(len(dataset_list))
-    train_loader = DataLoader(dataset_list[:130], batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(dataset_list[130:], batch_size=batch_size, shuffle=True)
 
     graph_learner = MLP_learner(nlayers=2,
                                 isize=150,
@@ -188,7 +199,7 @@ if __name__ == "__main__":
                 hidden_dim= 150 // 2,
                 emb_dim=50,
                 proj_dim=30,
-                dropout=0.5,
+                dropout=0.3,
                 dropout_adj=0.2,
                 sparse=None,
             )
@@ -204,6 +215,7 @@ if __name__ == "__main__":
         weight_decay=w_decay
     )
 
+    best_acc, best_f1 = 0.0, 0.0
     for epoch in range(1, epoches):
 
         model.train()
@@ -237,12 +249,17 @@ if __name__ == "__main__":
             if (1 - tau) and (c == 0 or epoch % c == 0):
                 anchor_adj = anchor_adj * tau + learned_adj.detach() * (1 - tau)
 
-        print("Epoch {:05d} | CL Loss {:.4f}".format(epoch, epoch_loss / couter))
 
         if epoch % eval_freq == 0:
 
-            eval(
-                graph_learner=graph_learner,
-                data_loader=train_loader,
-                cfg=cfg
-            )
+            acc, f1, = eval(
+                            graph_learner=graph_learner,
+                            dataset_list=dataset_list,
+                            cfg=cfg
+                        )
+
+            if f1 > best_f1:
+                best_f1 = max(best_f1, f1)
+                best_acc = max(best_acc, acc)
+
+        print("Epoch {:05d} | CL Loss {:.4f} | F1: {:.4f} | Acc: {:.4f} ".format(epoch, epoch_loss / couter, best_f1, best_acc))

@@ -1,5 +1,7 @@
+import os
 import torch
 import copy
+import pickle
 from config.config import ConfigGSL
 from data.dataset import generate_graph_dataset
 from model.model_gsl import GCL, MLP_learner
@@ -9,10 +11,10 @@ from torch_geometric.utils import to_dense_adj, dense_to_sparse
 from utils.utils_gsl import normalize, symmetrize
 from torch.optim import AdamW
 from torch.nn import CrossEntropyLoss
-from utils.utils import set_seed, set_logger
 from train.train_utils import test
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.model_selection import KFold, train_test_split
+from loguru import logger
 
 
 
@@ -80,7 +82,7 @@ def eval(graph_learner, dataset_list, cfg):
     criterion = CrossEntropyLoss()
     optimizer = AdamW(
         model.parameters(),
-        lr=cfg.lr,
+        lr=cfg.lr_gnn,
         weight_decay=cfg.weight_decay_eval if cfg.weight_decay_eval is not None else 0,
     )
     best_f1, best_acc = 0, 0
@@ -168,67 +170,60 @@ def test_gsl(model, graph_learner, loader, cfg):
 
 def train_gsl(cfg):
 
-    epoches         = cfg.epoches
-    c               = cfg.c
-    tau             = cfg.tau
-    batch_size      = cfg.batch_size
-    lr              = cfg.lr
-    w_decay         = cfg.w_decay
-    eval_freq       = cfg.eval_freq
-    device          = cfg.device
-
     dataset_list = generate_graph_dataset(cfg)
+
     train_loader = DataLoader(
         dataset_list,
-        batch_size=batch_size,
+        batch_size=cfg.batch_size,
         shuffle=True,
         )
 
-
-    graph_learner = MLP_learner(nlayers=2,
-                                isize=150,
-                                k=30,
-                                knn_metric="cosine_sim",
-                                i=6,
+    #TODO: move these to config
+    graph_learner = MLP_learner(nlayers=cfg.nlayers,
+                                isize=cfg.isize,
+                                k=cfg.k,
+                                knn_metric=cfg.knn_metric,
+                                i=cfg.i,
                                 sparse=False,
-                                act='relu',
+                                act=cfg.act_gl,
                                 )
-    model = GCL(nlayers=2,
-                in_dim=150,
-                hidden_dim= 150 // 2,
-                emb_dim=50,
-                proj_dim=30,
-                dropout=0.3,
-                dropout_adj=0.2,
+    model = GCL(nlayers=cfg.numlayers,
+                in_dim=cfg.in_dim,
+                hidden_dim= cfg.hidden_dim,
+                emb_dim=cfg.emb_dim,
+                proj_dim=cfg.proj_dim,
+                dropout=cfg.dropout_gcl,
+                dropout_adj=cfg.dropout_adj,
                 sparse=None,
             )
 
     optimizer_cl = torch.optim.Adam(
         model.parameters(),
-        lr=lr,
-        weight_decay=w_decay
+        lr=cfg.lr_proj,
+        weight_decay=cfg.w_decay
     )
     optimizer_learner = torch.optim.Adam(
         graph_learner.parameters(),
-        lr=lr,
-        weight_decay=w_decay
+        lr=cfg.lr_gl,
+        weight_decay=cfg.w_decay
     )
 
+    results = []
     best_acc, best_f1 = 0.0, 0.0
-    for epoch in range(1, epoches):
+    for epoch in range(1, cfg.epoches):
 
         model.train()
         graph_learner.train()
 
-        model = model.to(device)
-        graph_learner = graph_learner.to(device)
+        model = model.to(cfg.device)
+        graph_learner = graph_learner.to(cfg.device)
 
         epoch_loss, couter = 0, 0
         for data in train_loader:  # Iterate in batches over the training dataset.
 
-            features = data.x.to(device)
+            features = data.x.to(cfg.device)
             features  = features.to(torch.float32)
-            adjacency = data.edge_index.to(device)
+            adjacency = data.edge_index.to(cfg.device)
 
             adjacency = to_dense_adj(adjacency).squeeze_()
             assert adjacency.shape[0] == features.shape[0]
@@ -244,29 +239,32 @@ def train_gsl(cfg):
 
             epoch_loss += loss.item()
             couter += 1
+
             # Structure Bootstrapping
-            if (1 - tau) and (c == 0 or epoch % c == 0):
-                anchor_adj = anchor_adj * tau + learned_adj.detach() * (1 - tau)
+            if (1 - cfg.tau) and (cfg.c == 0 or epoch % cfg.c == 0):
+                anchor_adj = anchor_adj * cfg.tau + learned_adj.detach() * (1 - cfg.tau)
 
 
-        if epoch % eval_freq == 0:
+        if epoch % cfg.eval_freq == 0:
 
             acc, f1, = eval(
                             graph_learner=graph_learner,
                             dataset_list=dataset_list,
                             cfg=cfg
                         )
+            results.append([epoch, epoch_loss / couter, f1, acc])
 
             if f1 > best_f1:
                 best_f1 = max(best_f1, f1)
                 best_acc = max(best_acc, acc)
 
-        print("Epoch {:05d} | CL Loss {:.4f} | F1: {:.4f} | Acc: {:.4f} ".format(epoch, epoch_loss / couter, best_f1, best_acc))
+        logger.info("Epoch {:05d} | CL Loss {:.4f} | F1: {:.4f} | Acc: {:.4f} ".format(epoch, epoch_loss / couter, best_f1, best_acc))
 
-# if __name__ == "__main__":
-#     cfg = ConfigGSL()
 
-#     set_seed(cfg)
-#     # set_logger(cfg)
+    ## if result folder does not exist, create it
+    if not os.path.exists("./results/gsl/"):
+        os.makedirs("./results/gsl/")
 
-#     train_gsl(cfg)
+    ## save results
+    with open("./results/gsl/results.pkl", "wb") as f:
+        pickle.dump(results, f)

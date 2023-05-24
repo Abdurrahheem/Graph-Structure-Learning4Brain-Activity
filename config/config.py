@@ -1,6 +1,6 @@
 from config.cobre import CobreConfig
 from config.synth import SynthConfig
-from config.model import ModelConfig
+from config.model import ModelConfig, MLPLearnerConfig, GCLConfig
 from config.train import TrainConfig, TrainConfigGSL
 from config.dataset import DatasetConfig
 
@@ -39,6 +39,8 @@ class ConfigGSL(
     DatasetConfig,
     TrainConfigGSL,
     ModelConfig,
+    MLPLearnerConfig,
+    GCLConfig,
     ):
     seed = 1234
 
@@ -51,6 +53,9 @@ class ConfigGSL(
         TrainConfigGSL.__init__(self)
         DatasetConfig.__init__(self)
         ModelConfig.__init__(self)
+        MLPLearnerConfig.__init__(self)
+        GCLConfig.__init__(self)
+
         if self.dataset == "cobre":
             assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
                                                             Please choose from {['cobre', 'synthetic']}"

@@ -7,7 +7,7 @@ class TrainConfig:
         # self.weight_decay            = 0.0005
         self.weight_decay            = None
         self.device                  = "cuda:0"
-        self.verbose                 = True
+        self.verbose                 = False
 
 
 class TrainConfigGSL:
@@ -16,7 +16,9 @@ class TrainConfigGSL:
         self.c                       = 0
         self.tau                     = 0.9999
         self.batch_size              = 20
-        self.lr                      = 0.01
+        self.lr_proj                 = 0.01
+        self.lr_gl                   = 0.01
+        self.lr_gnn                  = 0.003
         self.w_decay                 = 0.0
         self.eval_freq               = 5
         self.verbose                 = True

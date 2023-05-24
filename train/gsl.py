@@ -1,16 +1,15 @@
 import torch
 import copy
-from config.config import Config
-from gl_model import MLP_learner
-from gst_model import GCL
+from config.config import ConfigGSL
 from data.dataset import generate_graph_dataset
-from utils.utils import set_seed, set_logger
+from model.model_gsl import GCL, MLP_learner
+from model.model import GCN
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils import to_dense_adj, dense_to_sparse
-from gstl_utils import normalize, symmetrize
-from model.model import GCN
+from utils.utils_gsl import normalize, symmetrize
 from torch.optim import AdamW
 from torch.nn import CrossEntropyLoss
+from utils.utils import set_seed, set_logger
 from train.train_utils import test
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.model_selection import KFold, train_test_split
@@ -82,7 +81,7 @@ def eval(graph_learner, dataset_list, cfg):
     optimizer = AdamW(
         model.parameters(),
         lr=cfg.lr,
-        weight_decay=cfg.weight_decay if cfg.weight_decay is not None else 0,
+        weight_decay=cfg.weight_decay_eval if cfg.weight_decay_eval is not None else 0,
     )
     best_f1, best_acc = 0, 0
     for epoch in range(epoches):
@@ -110,7 +109,7 @@ def eval(graph_learner, dataset_list, cfg):
             loss.backward()  # Derive gradients.
             optimizer.step()  # Update parameters based on gradients.
 
-        acc, f1, _, _ = test_gsl(model, graph_learner, val_loader,  cfg.device)
+        acc, f1, _, _ = test_gsl(model, graph_learner, val_loader, cfg)
 
         if f1 > best_f1:
             best_f1 = max(best_f1, f1)
@@ -120,13 +119,13 @@ def eval(graph_learner, dataset_list, cfg):
 
 
 
-def test_gsl(model, graph_learner, loader, device):
+def test_gsl(model, graph_learner, loader, cfg):
 
     graph_learner.eval()
-    graph_learner = graph_learner.to(device)
+    graph_learner = graph_learner.to(cfg.device)
 
     model.eval()
-    model = model.to(device)
+    model = model.to(cfg.device)
 
     outs, labels = [], []
     pd, gt = [], []
@@ -149,12 +148,12 @@ def test_gsl(model, graph_learner, loader, device):
 
         ##TODO: why x_pool is used as an output?
         outs.append(x_pool.detach().cpu().numpy())
-        labels.append(data.y.to(device).detach().cpu().numpy())
+        labels.append(data.y.detach().cpu().numpy())
 
         pred = out.argmax(dim=1)  # Use the class with highest probability.
 
         pd.extend(pred.detach().cpu().numpy().tolist())
-        gt.extend(data.y.to(device).detach().cpu().numpy().tolist())
+        gt.extend(data.y.detach().cpu().numpy().tolist())
 
     f1 = f1_score(pd, gt, average='weighted')
     accuracy = accuracy_score(pd, gt)
@@ -166,24 +165,24 @@ def test_gsl(model, graph_learner, loader, device):
     )  # Derive ratio of correct predictions.
 
 
-if __name__ == "__main__":
-    cfg = Config()
 
-    set_seed(cfg)
-    # set_logger(cfg)
+def train_gsl(cfg):
 
-
-    epoches         = 200
-    c               = 0
-    tau             = 0.9999
-    batch_size      = 20
-    lr              = 0.01
-    w_decay         = 0.0
-    eval_freq       = 5
+    epoches         = cfg.epoches
+    c               = cfg.c
+    tau             = cfg.tau
+    batch_size      = cfg.batch_size
+    lr              = cfg.lr
+    w_decay         = cfg.w_decay
+    eval_freq       = cfg.eval_freq
     device          = cfg.device
 
     dataset_list = generate_graph_dataset(cfg)
-    train_loader = DataLoader(dataset_list, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(
+        dataset_list,
+        batch_size=batch_size,
+        shuffle=True,
+        )
 
 
     graph_learner = MLP_learner(nlayers=2,
@@ -263,3 +262,11 @@ if __name__ == "__main__":
                 best_acc = max(best_acc, acc)
 
         print("Epoch {:05d} | CL Loss {:.4f} | F1: {:.4f} | Acc: {:.4f} ".format(epoch, epoch_loss / couter, best_f1, best_acc))
+
+# if __name__ == "__main__":
+#     cfg = ConfigGSL()
+
+#     set_seed(cfg)
+#     # set_logger(cfg)
+
+#     train_gsl(cfg)

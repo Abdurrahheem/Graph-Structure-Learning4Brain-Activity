@@ -1,7 +1,7 @@
 from config.cobre import CobreConfig
 from config.synth import SynthConfig
 from config.model import ModelConfig
-from config.train import TrainConfig
+from config.train import TrainConfig, TrainConfigGSL
 from config.dataset import DatasetConfig
 
 class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig, DatasetConfig):
@@ -34,8 +34,13 @@ class Config(CobreConfig, SynthConfig, ModelConfig, TrainConfig, DatasetConfig):
         assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
                                                             Please choose from {['cobre', 'synthetic']}"
 
-class ConfigGSL(DatasetConfig):
-    seed                    = 1234
+class ConfigGSL(
+    CobreConfig,
+    DatasetConfig,
+    TrainConfigGSL,
+    ModelConfig,
+    ):
+    seed = 1234
 
     def __init__(self):
 
@@ -43,11 +48,10 @@ class ConfigGSL(DatasetConfig):
         for var_name, var_value in class_vars.items():
             setattr(self, var_name, var_value)  # Create attribute with same name and value
 
+        TrainConfigGSL.__init__(self)
+        DatasetConfig.__init__(self)
+        ModelConfig.__init__(self)
         if self.dataset == "cobre":
             assert self.dataset in ["cobre", "synthetic"], f"{self.dataset} is not a valid dataset. \
                                                             Please choose from {['cobre', 'synthetic']}"
             CobreConfig.__init__(self)
-
-
-
-

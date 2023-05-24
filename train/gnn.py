@@ -10,7 +10,7 @@ from train.train_utils import train_model
 from data.dataset import generate_graph_dataset
 from sklearn.model_selection import KFold, train_test_split
 
-def run_gnn(cfg):
+def train_gnn(cfg):
 
     ## create data
     data = {}

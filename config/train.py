@@ -8,3 +8,17 @@ class TrainConfig:
         self.weight_decay            = None
         self.device                  = "cuda:0"
         self.verbose                 = True
+
+
+class TrainConfigGSL:
+    def __init__ (self):
+        self.epoches                 = 200
+        self.c                       = 0
+        self.tau                     = 0.9999
+        self.batch_size              = 20
+        self.lr                      = 0.01
+        self.w_decay                 = 0.0
+        self.eval_freq               = 5
+        self.verbose                 = True
+        self.device                  = "cuda:0"
+        self.weight_decay_eval       = None

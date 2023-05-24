@@ -52,12 +52,11 @@ def visualize_gsl():
         data = pickle.load(f)
 
     data = np.array(data)
-    print(data.shape)
 
     plt.figure(figsize=(13,7))
-    plt.plot(data[:, 0], data[:, 2], "-o", label="F1 val_score")
+    plt.plot(data[:, 0], data[:, 1], "-o", label="Loss val_score")
     plt.xlabel("Epoches")
-    plt.ylabel("F1")
+    plt.ylabel("Loss")
     plt.legend()
     plt.grid()
     plt.savefig(f"results/gsl/F1_epoch.png")

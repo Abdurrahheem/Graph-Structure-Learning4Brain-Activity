@@ -1,9 +1,10 @@
+import argparse
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
 
-def draw(means, stds, taus, label, lr=None):
+def draw_std(means, stds, taus, label, lr=None):
 
     plt.figure(figsize=(13,7))
     plt.plot(taus, means, '-o', label=label)
@@ -15,10 +16,10 @@ def draw(means, stds, taus, label, lr=None):
     plt.legend()
     plt.grid()
     plt.savefig(f"results/gnn/{label}.png")
-    print("Finished")
 
-if __name__ == "__main__":
 
+
+def visualize_gnn():
     path = "results/gnn/results.pkl"
     path_lr = "results/LR/log_reg_results.pkl"
 
@@ -36,11 +37,44 @@ if __name__ == "__main__":
         stds.append(np.array(v).T.std(0))
         taus.append(k)
 
-
     means = np.array(means) * 100
     stds  = np.array(stds) * 100
     data_lr = np.array(data_lr) * 100
 
     print(means)
-    draw(means[:, 1], stds[:, 1], np.arange(0.1, 0.8, 0.1), "Val_Accuracy")
-    draw(means[:, 3], stds[:, 3], np.arange(0.1, 0.8, 0.1), "Val_F1_Score", lr=data_lr)
+    draw_std(means[:, 1], stds[:, 1], np.arange(0.1, 0.8, 0.1), "Val_Accuracy")
+    draw_std(means[:, 3], stds[:, 3], np.arange(0.1, 0.8, 0.1), "Val_F1_Score", lr=data_lr)
+
+def visualize_gsl():
+    path = "results/gsl/results.pkl"
+
+    with open(path, "rb") as f:
+        data = pickle.load(f)
+
+    data = np.array(data)
+    print(data.shape)
+
+    plt.figure(figsize=(13,7))
+    plt.plot(data[:, 0], data[:, 2], "-o", label="F1 val_score")
+    plt.xlabel("Epoches")
+    plt.ylabel("F1")
+    plt.legend()
+    plt.grid()
+    plt.savefig(f"results/gsl/F1_epoch.png")
+
+def get_args():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-v",
+        "--vis",
+        choices=["gnn", "gsl"],
+        required=True,
+        help="Chose which results you want to visualize",
+    )
+    return parser.parse_args()
+
+if __name__ == "__main__":
+
+    args = get_args()
+    visualize_gnn() if args.vis == "gnn" else visualize_gsl()

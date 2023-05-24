@@ -3,5 +3,4 @@ numpy==1.22.2
 pandas==1.4.3
 scikit_learn==1.1.1
 tabulate==0.8.10
-# torch==2.0.0+cu118
-# torch_geometric==2.3.0
+munkres==1.1.4

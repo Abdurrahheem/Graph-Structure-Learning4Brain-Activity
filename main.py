@@ -38,12 +38,27 @@ def get_args():
         default=True,
         help="Train Logistice Regression Model",
     )
+
+    parser.add_argument(
+        "-d",
+        "--device",
+        default='cuda',
+        choices=["cpu", "cuda"],
+        help="Device to train on",
+    )
+
     return parser.parse_args()
+
+
+def merge(cfg, args):
+    cfg.device = args.device
+    return cfg
 
 if __name__ == "__main__":
 
     args = get_args()
     cfg = Config() if args.model == "gnn" else ConfigGSL()
+    cfg = merge(cfg, args)
 
     set_seed(cfg)
     set_logger(cfg)

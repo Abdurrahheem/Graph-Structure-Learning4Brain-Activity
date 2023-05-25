@@ -93,6 +93,7 @@ This will create `dataset` folder with following structure:
 ```
 ------
 ### **Prerequisites**
+It is recommened to create conda environment with Pyhton 3.8.x version
 
 In order to run the training you will need to install dependencies. To do that, run the following
 
@@ -130,14 +131,19 @@ Main idea of usage for this repository is that one only needs to change cofigura
 
 `cobre.py` and `synth.py` files are designated for parameter of a dataset and should **not** be modifed.`model.py` is a config of model to be trianed. You can play with it's parameters. `train.py` file is training config with hyperparmeters such as `learning rate`, `batch size` and others.
 
-To start training of a model with default haparameters run this:
+To start training simple GNN model with default haparameters run this:
 
 ```console
-python main.py
+python main.py -m gnn
+```
+To train Graph Structure Learning GNN run this
+
+```console
+python main.py -m gsl
 ```
 
-To create training result diagrams run this
+To create training result diagrams for GNN and GSL GNN run this
 
 ```console
-python utils/draw.py
+python utils/draw.py -m gnn && python utils/draw.py -m gsl
 ```
